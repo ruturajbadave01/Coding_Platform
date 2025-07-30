@@ -122,6 +122,9 @@ export default function Dashboard() {
             <div className="dashboard-buttons">
               <Link to="/login" className="dashboard-btn primary">Login</Link>
               <Link to="/register" className="dashboard-btn secondary">Register</Link>
+              <Link to="/student-dashboard" className="dashboard-btn secondary">Student Dashboard</Link>
+              <Link to="/admin-dashboard" className="dashboard-btn secondary">Admin Dashboard</Link>
+              <Link to="/tpo-dashboard" className="dashboard-btn secondary">TPO Dashboard</Link>
             </div>
           </div>
         </section>

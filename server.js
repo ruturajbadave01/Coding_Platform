@@ -124,12 +124,40 @@ app.post('/api/tpo-login', (req, res) => {
         return res.status(401).json({ error: 'Wrong credentials.' });
       }
       const user = results[0];
-      const match = await bcrypt.compare(password, user.password);
-      if (match) {
+      // If your passwords are NOT hashed, use plain comparison:
+      if (password === user.password) {
         res.json({ message: 'Login successful!' });
       } else {
         res.status(401).json({ error: 'Wrong credentials.' });
       }
+      // If your passwords ARE hashed, use bcrypt.compare
+    }
+  );
+});
+
+// Get all registered students
+app.get('/api/students', (req, res) => {
+  db.query('SELECT first_name, middle_name, last_name, email, prn, class, branch FROM students', (err, results) => {
+    if (err) {
+      console.error('DB Error:', err);
+      return res.status(500).json({ error: 'Database error.' });
+    }
+    res.json(results);
+  });
+});
+
+// Get students by branch/department
+app.get('/api/students/:branch', (req, res) => {
+  const branch = req.params.branch;
+  db.query(
+    'SELECT first_name, middle_name, last_name, email, prn, class, branch FROM students WHERE branch = ?',
+    [branch],
+    (err, results) => {
+      if (err) {
+        console.error('DB Error:', err);
+        return res.status(500).json({ error: 'Database error.' });
+      }
+      res.json(results);
     }
   );
 });

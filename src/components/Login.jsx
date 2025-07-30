@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 
 function StarBackground() {
@@ -95,6 +96,7 @@ const DEPARTMENTS = [
 ];
 
 export default function Login() {
+  const navigate = useNavigate();
   const [role, setRole] = useState('student');
   const [form, setForm] = useState({
     email: '',
@@ -144,8 +146,10 @@ export default function Login() {
           .then(res => res.json())
           .then(data => {
             if (data.message) {
-              setSubmitted(true);
-              setErrors({});
+              localStorage.setItem('studentLoggedIn', 'true');
+              setTimeout(() => {
+                navigate('/student-dashboard');
+              }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });
               setSubmitted(false);
@@ -164,8 +168,11 @@ export default function Login() {
           .then(res => res.json())
           .then(data => {
             if (data.message) {
-              setSubmitted(true);
-              setErrors({});
+              localStorage.setItem('adminLoggedIn', 'true');
+              localStorage.setItem('adminDepartment', form.department);
+              setTimeout(() => {
+                navigate('/admin-dashboard');
+              }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });
               setSubmitted(false);
@@ -184,8 +191,10 @@ export default function Login() {
           .then(res => res.json())
           .then(data => {
             if (data.message) {
-              setSubmitted(true);
-              setErrors({});
+              localStorage.setItem('tpoLoggedIn', 'true');
+              setTimeout(() => {
+                navigate('/tpo-dashboard');
+              }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });
               setSubmitted(false);
@@ -203,6 +212,10 @@ export default function Login() {
     <div className="login-bg">
       <StarBackground />
       <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1em' }}>
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/register" className="nav-link">Register</Link>
+        </div>
         <h2>Login</h2>
         <div className="form-group">
           <label>Login as</label>

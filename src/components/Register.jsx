@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import './Register.css';
 
 function StarBackground() {
@@ -96,6 +97,7 @@ const BRANCHES = [
 ];
 
 export default function Register() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: '',
     middleName: '',
@@ -154,7 +156,6 @@ export default function Register() {
         .then((data) => {
           if (data.message) {
             setSubmitted(true);
-            // Clear all fields
             setForm({
               firstName: '',
               middleName: '',
@@ -166,6 +167,9 @@ export default function Register() {
               password: '',
               confirmPassword: '',
             });
+            setTimeout(() => {
+              navigate('/login');
+            }, 1200);
           } else {
             setErrors({ api: data.error || "Registration failed" });
           }
@@ -178,6 +182,9 @@ export default function Register() {
     <div className="register-bg">
       <StarBackground />
       <form className="register-form" onSubmit={handleSubmit} autoComplete="off">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1em' }}>
+          <Link to="/" className="nav-link">Home</Link>
+        </div>
         <h2>Student Registration</h2>
         {submitted && <div className="success-msg">Registration successful!</div>}
         <div className="form-row">
