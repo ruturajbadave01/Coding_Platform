@@ -1,0 +1,179 @@
+.star-bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.register-bg {
+  position: relative;
+  min-height: calc(100vh - 400px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #232526 0%, #414345 100%);
+  overflow: hidden;
+  flex: 1;
+}
+
+.register-form {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  padding: 2.5em 2em 2em 2em;
+  border-radius: 18px;
+  box-shadow: 0 4px 32px #00000022;
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+}
+
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.college-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.register-form h2 {
+  text-align: center;
+  color: #232526;
+  margin-bottom: 0.5em;
+}
+
+.form-row {
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 0.3em;
+  color: #333;
+}
+
+.form-group input {
+  padding: 0.6em 1em;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s, background 0.2s;
+  background: #f7f7fa;
+  box-shadow: 0 1px 4px #0000000a;
+  color: #232526;
+}
+.form-group input:focus {
+  border: 1.5px solid #ff512f;
+  background: #fff;
+}
+
+.register-form select {
+  padding: 0.6em 1em;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s, background 0.2s;
+  background: #f7f7fa;
+  box-shadow: 0 1px 4px #0000000a;
+  color: #232526;
+  margin-top: 0.2em;
+}
+.register-form select:focus {
+  border: 1.5px solid #ff512f;
+  background: #fff;
+}
+
+.error {
+  color: #ff512f;
+  font-size: 0.95em;
+  margin-top: 0.2em;
+}
+
+.success-msg {
+  background: #e0ffe0;
+  color: #1e7d1e;
+  padding: 0.7em 1em;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 0.5em;
+  font-weight: 500;
+}
+
+.register-btn {
+  margin-top: 1em;
+  padding: 0.8em 0;
+  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #00000022;
+  transition: background 0.2s, transform 0.2s;
+}
+.register-btn:hover {
+  background: linear-gradient(90deg, #dd2476 0%, #ff512f 100%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 1px solid #eee;
+}
+
+.form-footer p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95em;
+}
+
+.link-text {
+  color: #ff512f;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.link-text:hover {
+  color: #dd2476;
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .register-form {
+    padding: 1.2em 0.5em;
+    max-width: 98vw;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 0.5em;
+  }
+} 

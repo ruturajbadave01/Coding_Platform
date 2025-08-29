@@ -1,0 +1,93 @@
+MCQ Questions Template
+======================
+
+Use this format to create MCQ questions for automatic parsing:
+
+1. What is the capital of France?
+A. London
+B. Paris
+C. Berlin
+D. Madrid
+Answer: B
+
+2. Which programming language is this?
+A. Python
+B. Java
+C. JavaScript
+D. C++
+Answer: A
+
+3. What does HTML stand for?
+A. HyperText Markup Language
+B. High Tech Modern Language
+C. Home Tool Markup Language
+D. Hyperlink and Text Markup Language
+Answer: A
+
+4. Which data structure follows LIFO principle?
+A. Queue
+B. Stack
+C. Tree
+D. Graph
+Answer: B
+
+5. What is the time complexity of binary search?
+A. O(1)
+B. O(log n)
+C. O(n)
+D. O(n²)
+Answer: B
+
+6. Which sorting algorithm has the best average-case performance?
+A. Bubble Sort
+B. Selection Sort
+C. Quick Sort
+D. Insertion Sort
+Answer: C
+
+7. What is the primary purpose of a database index?
+A. To store data
+B. To improve query performance
+C. To backup data
+D. To encrypt data
+Answer: B
+
+8. Which protocol is used for secure web browsing?
+A. HTTP
+B. FTP
+C. HTTPS
+D. SMTP
+Answer: C
+
+9. What is the main advantage of object-oriented programming?
+A. Faster execution
+B. Code reusability
+C. Lower memory usage
+D. Simpler syntax
+Answer: B
+
+10. Which of the following is NOT a valid variable name in most programming languages?
+A. user_name
+B. 2nd_value
+C. _private
+D. camelCase
+Answer: B
+
+Formatting Rules:
+================
+1. Each question starts with a number followed by a dot or parenthesis
+2. Options are labeled with A, B, C, D (or a, b, c, d)
+3. The correct answer is specified with "Answer:" or "Correct:"
+4. You can add descriptions after the question title
+5. Empty lines between questions are ignored
+6. The system automatically detects and parses the format
+
+Example with description:
+11. This is a question with additional context and description that provides more information to help students understand what they need to answer.
+A. First option
+B. Second option
+C. Third option
+D. Fourth option
+Answer: C
+
+Save this file as .txt and upload it to automatically create MCQ questions! 
