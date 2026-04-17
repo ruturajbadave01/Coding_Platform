@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import collegeLogo from '../assets/college-logo.jpeg';
+import { initializeSession, shouldRedirectFromLogin, preventBackToLogin } from '../utils/sessionManager';
 import './Login.css';
 
 function StarBackground() {
@@ -109,20 +110,19 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  // Check if user is already logged in and redirect accordingly
+  // Initialize session management and handle authentication
   useEffect(() => {
-    const studentLoggedIn = localStorage.getItem('studentLoggedIn') === 'true';
-    const adminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
-    const tpoLoggedIn = localStorage.getItem('tpoLoggedIn') === 'true';
-    const userEmail = localStorage.getItem('userEmail');
-
-    if (studentLoggedIn && userEmail) {
-      navigate('/student-dashboard');
-    } else if (adminLoggedIn) {
-      navigate('/admin-dashboard');
-    } else if (tpoLoggedIn) {
-      navigate('/tpo-dashboard');
+    // Check if user is already logged in and redirect them
+    const { shouldRedirect, redirectTo } = shouldRedirectFromLogin();
+    if (shouldRedirect && redirectTo) {
+      navigate(redirectTo, { replace: true });
+      return;
     }
+
+    // Set up back navigation prevention
+    const cleanup = preventBackToLogin(navigate);
+    
+    return cleanup;
   }, [navigate]);
 
   function handleChange(e) {
@@ -170,8 +170,10 @@ export default function Login() {
             if (data.message) {
               localStorage.setItem('studentLoggedIn', 'true');
               localStorage.setItem('userEmail', form.email);
+              // Initialize session management
+              initializeSession();
               setTimeout(() => {
-                navigate('/student-dashboard');
+                navigate('/student-dashboard', { replace: true });
               }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });
@@ -193,8 +195,10 @@ export default function Login() {
             if (data.message) {
               localStorage.setItem('adminLoggedIn', 'true');
               localStorage.setItem('adminDepartment', form.department);
+              // Initialize session management
+              initializeSession();
               setTimeout(() => {
-                navigate('/admin-dashboard');
+                navigate('/admin-dashboard', { replace: true });
               }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });
@@ -215,8 +219,10 @@ export default function Login() {
           .then(data => {
             if (data.message) {
               localStorage.setItem('tpoLoggedIn', 'true');
+              // Initialize session management
+              initializeSession();
               setTimeout(() => {
-                navigate('/tpo-dashboard');
+                navigate('/tpo-dashboard', { replace: true });
               }, 1000);
             } else {
               setErrors({ api: data.error || 'Login failed' });

@@ -12,18 +12,6 @@ export function initializeSession() {
     sessionTimer = setTimeout(logout, SESSION_TIMEOUT);
   };
 
-  // Logout function
-  const logout = () => {
-    localStorage.removeItem('studentLoggedIn');
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('tpoLoggedIn');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('adminDepartment');
-    
-    // Redirect to login page
-    window.location.href = '/login';
-  };
-
   // Add event listeners for user activity
   const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
   events.forEach(event => {
@@ -66,14 +54,82 @@ export function getUserRole() {
   return null;
 }
 
-// Manual logout
-export function logout() {
+// Validate session for specific role
+export function validateSession(requiredRole) {
+  if (requiredRole === 'student') {
+    const isLoggedIn = localStorage.getItem('studentLoggedIn') === 'true';
+    const hasEmail = !!localStorage.getItem('userEmail');
+    return isLoggedIn && hasEmail;
+  }
+  
+  if (requiredRole === 'admin') {
+    return localStorage.getItem('adminLoggedIn') === 'true';
+  }
+  
+  if (requiredRole === 'tpo') {
+    return localStorage.getItem('tpoLoggedIn') === 'true';
+  }
+  
+  return false;
+}
+
+// Clear all session data
+export function clearSession() {
   localStorage.removeItem('studentLoggedIn');
   localStorage.removeItem('adminLoggedIn');
   localStorage.removeItem('tpoLoggedIn');
   localStorage.removeItem('userEmail');
   localStorage.removeItem('adminDepartment');
+  localStorage.removeItem('tpoUsername');
+  
+  // Clear any session timer
+  if (sessionTimer) {
+    clearTimeout(sessionTimer);
+    sessionTimer = null;
+  }
+}
+
+// Manual logout with proper cleanup
+export function logout() {
+  clearSession();
   
   // Redirect to login page
   window.location.href = '/login';
+}
+
+// Force logout and prevent back navigation
+export function forceLogout() {
+  clearSession();
+  
+  // Replace current history entry to prevent back navigation
+  window.history.replaceState(null, '', '/login');
+  window.location.href = '/login';
+}
+
+// Check if user should be redirected away from login page
+export function shouldRedirectFromLogin() {
+  const isStudent = localStorage.getItem('studentLoggedIn') === 'true' && !!localStorage.getItem('userEmail');
+  const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+  const isTpo = localStorage.getItem('tpoLoggedIn') === 'true';
+  
+  return {
+    shouldRedirect: isStudent || isAdmin || isTpo,
+    redirectTo: isStudent ? '/student-dashboard' : isAdmin ? '/admin-dashboard' : isTpo ? '/tpo-dashboard' : null
+  };
+}
+
+// Prevent back navigation to login when user is logged in
+export function preventBackToLogin(navigate) {
+  const handlePopState = () => {
+    const { shouldRedirect, redirectTo } = shouldRedirectFromLogin();
+    if (shouldRedirect && redirectTo) {
+      navigate(redirectTo, { replace: true });
+    }
+  };
+  
+  window.addEventListener('popstate', handlePopState);
+  
+  return () => {
+    window.removeEventListener('popstate', handlePopState);
+  };
 }

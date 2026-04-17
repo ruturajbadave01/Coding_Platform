@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import collegeLogo from '../assets/college-logo.jpeg';
+import { jsPDF } from 'jspdf';
 import './TPODashboard.css';
 
 function StarBackground() {
@@ -152,9 +153,6 @@ function BranchCard({ branch, stats, students }) {
                   <p>{student.email}</p>
                   <span className="student-class">{student.class}</span>
                 </div>
-                <div className="student-performance">
-                  <span className="performance-score">85%</span>
-                </div>
               </div>
             ))}
           </div>
@@ -186,10 +184,6 @@ function LeaderboardCard({ rank, student, performance }) {
           <p>{student.branch} - {student.class}</p>
         </div>
       </div>
-      <div className="performance-info">
-        <div className="performance-score">{performance.score}%</div>
-        <div className="performance-label">Accuracy</div>
-      </div>
       <div className="stats-info">
         <div className="stat-item">
           <span className="stat-value">{performance.problemsSolved}</span>
@@ -204,37 +198,17 @@ function LeaderboardCard({ rank, student, performance }) {
   );
 }
 
-function PerformanceChart({ data, title }) {
-  return (
-    <div className="performance-chart">
-      <h3>{title}</h3>
-      <div className="chart-container">
-        <div className="chart-bars">
-          {data.map((item, index) => (
-            <div key={index} className="chart-bar">
-              <div 
-                className="bar-fill" 
-                style={{ 
-                  height: `${item.value}%`,
-                  backgroundColor: item.color 
-                }}
-              ></div>
-              <span className="bar-label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function TPODashboard() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedBranch, setSelectedBranch] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
+  const [lastUpdate, setLastUpdate] = useState(new Date());
 
   const BRANCHES = ['CSE', 'AIDS', 'ENTC', 'MECHANICAL', 'ELECTRICAL', 'CIVIL'];
   const CLASSES = ['SY', 'TY', 'BE'];
@@ -247,6 +221,27 @@ export default function TPODashboard() {
       return;
     }
 
+    // Handle back navigation within dashboard
+    const handlePopState = () => {
+      const stillLoggedIn = localStorage.getItem('tpoLoggedIn') === 'true';
+      if (!stillLoggedIn) {
+        navigate('/login');
+        return;
+      }
+      
+      // If user is on a sub-tab (not overview), go back to overview
+      if (activeTab !== 'overview') {
+        setActiveTab('overview');
+        // Push a new state to prevent going back to login
+        window.history.pushState({ tab: 'overview' }, '', window.location.pathname);
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push initial state to establish history
+    window.history.pushState({ tab: activeTab }, '', window.location.pathname);
+
     // Fetch all students
     fetch('http://localhost:5000/api/students')
       .then(res => res.json())
@@ -258,7 +253,40 @@ export default function TPODashboard() {
         console.error('Error fetching students:', err);
         setLoading(false);
       });
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [navigate]);
+
+  // Fetch leaderboard data with real-time updates
+  useEffect(() => {
+    const fetchLeaderboard = () => {
+      setLeaderboardLoading(true);
+      fetch('http://localhost:5000/api/leaderboard?limit=50')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setLeaderboard(data);
+            setLastUpdate(new Date());
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching leaderboard:', err);
+        })
+        .finally(() => {
+          setLeaderboardLoading(false);
+        });
+    };
+
+    // Initial fetch
+    fetchLeaderboard();
+    
+    // Set up auto-refresh every 10 seconds
+    const interval = setInterval(fetchLeaderboard, 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const getBranchStats = (branch) => {
     const branchStudents = students.filter(s => s.branch === branch);
@@ -295,37 +323,189 @@ export default function TPODashboard() {
   };
 
   const getLeaderboardData = () => {
-    // Mock performance data - in real app, this would come from database
-    return students.slice(0, 20).map((student, index) => ({
-      rank: index + 1,
-      student,
+    // Use real leaderboard data from API
+    return leaderboard.map((item, index) => ({
+      rank: item.rank,
+      student: {
+        first_name: item.name.split(' ')[0] || '',
+        last_name: item.name.split(' ').slice(1).join(' ') || '',
+        email: item.email,
+        class: item.class,
+        branch: item.branch
+      },
       performance: {
-        score: Math.floor(Math.random() * 30) + 70, // 70-100%
-        problemsSolved: Math.floor(Math.random() * 50) + 10,
-        points: Math.floor(Math.random() * 1000) + 500
+        score: Math.min(100, Math.max(0, Math.floor((item.solved / Math.max(item.points / 100, 1)) * 10))), // Calculate accuracy
+        problemsSolved: item.solved,
+        points: item.points
       }
     }));
   };
 
-  const getPerformanceData = () => {
-    const branchData = BRANCHES.map(branch => ({
-      label: branch,
-      value: Math.floor(Math.random() * 40) + 60, // 60-100%
-      color: `hsl(${Math.random() * 360}, 70%, 60%)`
-    }));
-
-    const classData = CLASSES.map(cls => ({
-      label: cls,
-      value: Math.floor(Math.random() * 40) + 60,
-      color: `hsl(${Math.random() * 360}, 70%, 60%)`
-    }));
-
-    return { branchData, classData };
-  };
-
   const overallStats = getOverallStats();
   const leaderboardData = getLeaderboardData();
-  const performanceData = getPerformanceData();
+
+  // Calculate real-time leaderboard statistics
+  const getLeaderboardStats = () => {
+    if (leaderboard.length === 0) {
+      return {
+        topPerformers: 0,
+        topDepartment: 'N/A'
+      };
+    }
+
+    // Find top department by total points
+    const departmentStats = {};
+    leaderboard.forEach(item => {
+      if (!departmentStats[item.branch]) {
+        departmentStats[item.branch] = { totalPoints: 0, count: 0 };
+      }
+      departmentStats[item.branch].totalPoints += item.points;
+      departmentStats[item.branch].count += 1;
+    });
+
+    const topDepartment = Object.entries(departmentStats)
+      .map(([branch, stats]) => ({
+        branch,
+        totalPoints: stats.totalPoints
+      }))
+      .sort((a, b) => b.totalPoints - a.totalPoints)[0]?.branch || 'N/A';
+
+    return {
+      topPerformers: leaderboard.length,
+      topDepartment
+    };
+  };
+
+  const leaderboardStats = getLeaderboardStats();
+
+  // Handle tab changes with proper history management
+  const handleTabChange = (tabName) => {
+    setActiveTab(tabName);
+    // Push new state to browser history
+    window.history.pushState({ tab: tabName }, '', window.location.pathname);
+  };
+
+  // PDF Download Functions
+  const downloadOverallLeaderboardPDF = () => {
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Overall Leaderboard Report', 20, 20);
+    
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    
+    // Table headers
+    doc.setFontSize(12);
+    doc.text('Rank', 20, 50);
+    doc.text('Student Name', 40, 50);
+    doc.text('Department', 100, 50);
+    doc.text('Class', 140, 50);
+    doc.text('Problems Solved', 160, 50);
+    doc.text('Points', 200, 50);
+    
+    // Table data
+    let yPosition = 60;
+    leaderboard.forEach((item, index) => {
+      if (yPosition > 280) {
+        doc.addPage();
+        yPosition = 20;
+        // Repeat headers on new page
+        doc.text('Rank', 20, yPosition);
+        doc.text('Student Name', 40, yPosition);
+        doc.text('Department', 100, yPosition);
+        doc.text('Class', 140, yPosition);
+        doc.text('Problems Solved', 160, yPosition);
+        doc.text('Points', 200, yPosition);
+        yPosition = 30;
+      }
+      
+      doc.setFontSize(10);
+      doc.text((index + 1).toString(), 20, yPosition);
+      doc.text(item.name, 40, yPosition);
+      doc.text(item.branch, 100, yPosition);
+      doc.text(item.class, 140, yPosition);
+      doc.text(item.solved.toString(), 160, yPosition);
+      doc.text(item.points.toString(), 200, yPosition);
+      yPosition += 10;
+    });
+    
+    // Statistics
+    yPosition += 20;
+    doc.setFontSize(14);
+    doc.text('Statistics', 20, yPosition);
+    yPosition += 10;
+    doc.setFontSize(10);
+    doc.text(`Total Students: ${leaderboardStats.topPerformers}`, 20, yPosition);
+    yPosition += 10;
+    doc.text(`Top Department: ${leaderboardStats.topDepartment}`, 20, yPosition);
+    
+    doc.save('Overall_Leaderboard_Report.pdf');
+  };
+
+  const downloadBranchwiseLeaderboardPDF = () => {
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Branch-wise Leaderboard Report', 20, 20);
+    
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    
+    // Group by branch
+    const branchGroups = {};
+    leaderboard.forEach(item => {
+      if (!branchGroups[item.branch]) {
+        branchGroups[item.branch] = [];
+      }
+      branchGroups[item.branch].push(item);
+    });
+    
+    let yPosition = 50;
+    Object.keys(branchGroups).forEach(branch => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Branch header
+      doc.setFontSize(14);
+      doc.text(`${branch} Department`, 20, yPosition);
+      yPosition += 10;
+      
+      // Table headers
+      doc.setFontSize(10);
+      doc.text('Rank', 20, yPosition);
+      doc.text('Student Name', 40, yPosition);
+      doc.text('Class', 100, yPosition);
+      doc.text('Problems Solved', 120, yPosition);
+      doc.text('Points', 160, yPosition);
+      yPosition += 10;
+      
+      // Branch students
+      branchGroups[branch].forEach((item, index) => {
+        if (yPosition > 280) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.text((index + 1).toString(), 20, yPosition);
+        doc.text(item.name, 40, yPosition);
+        doc.text(item.class, 100, yPosition);
+        doc.text(item.solved.toString(), 120, yPosition);
+        doc.text(item.points.toString(), 160, yPosition);
+        yPosition += 10;
+      });
+      
+      yPosition += 15;
+    });
+    
+    doc.save('Branchwise_Leaderboard_Report.pdf');
+  };
 
   if (loading) {
     return (
@@ -356,31 +536,25 @@ export default function TPODashboard() {
           <nav className="sidebar-nav">
             <button 
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabChange('overview')}
             >
               📊 Overview
             </button>
             <button 
               className={`nav-item ${activeTab === 'branches' ? 'active' : ''}`}
-              onClick={() => setActiveTab('branches')}
+              onClick={() => handleTabChange('branches')}
             >
               🏢 Branches
             </button>
             <button 
               className={`nav-item ${activeTab === 'leaderboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('leaderboard')}
+              onClick={() => handleTabChange('leaderboard')}
             >
               🏆 Leaderboard
             </button>
             <button 
-              className={`nav-item ${activeTab === 'performance' ? 'active' : ''}`}
-              onClick={() => setActiveTab('performance')}
-            >
-              📈 Performance
-            </button>
-            <button 
               className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
-              onClick={() => setActiveTab('reports')}
+              onClick={() => handleTabChange('reports')}
             >
               📋 Reports
             </button>
@@ -428,59 +602,9 @@ export default function TPODashboard() {
                   color="#F44336"
                   gradient="linear-gradient(135deg, #F44336 0%, #D32F2F 100%)"
                 />
-                <StatCard 
-                  icon="📈"
-                  title="Avg Performance"
-                  value="78%"
-                  color="#00BCD4"
-                  gradient="linear-gradient(135deg, #00BCD4 0%, #0097A7 100%)"
-                />
               </div>
 
-              <div className="quick-actions">
-                <h3>Quick Actions</h3>
-                <div className="action-buttons">
-                  <button className="action-btn primary">
-                    📊 Generate Report
-                  </button>
-                  <button className="action-btn secondary">
-                    📧 Send Notification
-                  </button>
-                  <button className="action-btn secondary">
-                    📋 Export Data
-                  </button>
-                  <button className="action-btn secondary">
-                    🎯 Set Targets
-                  </button>
-                </div>
-              </div>
 
-              <div className="recent-activity">
-                <h3>Recent Activity</h3>
-                <div className="activity-list">
-                  <div className="activity-item">
-                    <span className="activity-icon">✅</span>
-                    <div className="activity-content">
-                      <p>New student registered in CSE department</p>
-                      <span className="activity-time">2 hours ago</span>
-                    </div>
-                  </div>
-                  <div className="activity-item">
-                    <span className="activity-icon">🏆</span>
-                    <div className="activity-content">
-                      <p>Top performer identified from AIDS branch</p>
-                      <span className="activity-time">1 day ago</span>
-                    </div>
-                  </div>
-                  <div className="activity-item">
-                    <span className="activity-icon">📈</span>
-                    <div className="activity-content">
-                      <p>Performance report generated for all departments</p>
-                      <span className="activity-time">2 days ago</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -524,127 +648,68 @@ export default function TPODashboard() {
 
           {activeTab === 'leaderboard' && (
             <div className="leaderboard-section">
-              <h2 className="section-title">Overall Leaderboard</h2>
-              
-              <div className="leaderboard-container">
-                {leaderboardData.map((item, index) => (
-                  <LeaderboardCard 
-                    key={index}
-                    rank={item.rank}
-                    student={item.student}
-                    performance={item.performance}
-                  />
-                ))}
-              </div>
-
-              <div className="leaderboard-stats">
-                <h3>Leaderboard Statistics</h3>
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <span className="stat-value">{leaderboardData.length}</span>
-                    <span className="stat-label">Top Performers</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">85%</span>
-                    <span className="stat-label">Average Score</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">CSE</span>
-                    <span className="stat-label">Top Department</span>
-                  </div>
+              <div className="section-header">
+                <h2 className="section-title">Overall Leaderboard</h2>
+                <div className="last-update">
+                  <span className="update-indicator">🔄</span>
+                  <span>Last updated: {lastUpdate.toLocaleTimeString()}</span>
                 </div>
               </div>
+              
+              {leaderboardLoading ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>Loading leaderboard data...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="leaderboard-container">
+                    {leaderboardData.map((item, index) => (
+                      <LeaderboardCard 
+                        key={`${item.student.email}-${index}`}
+                        rank={item.rank}
+                        student={item.student}
+                        performance={item.performance}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="leaderboard-stats">
+                    <h3>Leaderboard Statistics</h3>
+                    <div className="stats-grid">
+                      <div className="stat-item">
+                        <span className="stat-value">{leaderboardStats.topPerformers}</span>
+                        <span className="stat-label">Top Performers</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-value">{leaderboardStats.topDepartment}</span>
+                        <span className="stat-label">Top Department</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {activeTab === 'performance' && (
-            <div className="performance-section">
-              <h2 className="section-title">Performance Analytics</h2>
-              
-              <div className="performance-grid">
-                <PerformanceChart 
-                  data={performanceData.branchData}
-                  title="Branch-wise Performance"
-                />
-                <PerformanceChart 
-                  data={performanceData.classData}
-                  title="Class-wise Performance"
-                />
-              </div>
-
-              <div className="performance-metrics">
-                <h3>Key Performance Indicators</h3>
-                <div className="metrics-grid">
-                  <div className="metric-card">
-                    <h4>Overall Performance</h4>
-                    <div className="metric-value">78%</div>
-                    <div className="metric-trend positive">+5% from last month</div>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Problem Solving Rate</h4>
-                    <div className="metric-value">85%</div>
-                    <div className="metric-trend positive">+3% from last month</div>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Average Score</h4>
-                    <div className="metric-value">72%</div>
-                    <div className="metric-trend positive">+2% from last month</div>
-                  </div>
-                  <div className="metric-card">
-                    <h4>Participation Rate</h4>
-                    <div className="metric-value">92%</div>
-                    <div className="metric-trend positive">+1% from last month</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {activeTab === 'reports' && (
             <div className="reports-section">
-              <h2 className="section-title">Reports & Analytics</h2>
+              <h2 className="section-title">Download Reports</h2>
               
               <div className="reports-grid">
                 <div className="report-card">
-                  <div className="report-icon">📊</div>
-                  <h3>Complete Student Directory</h3>
-                  <p>All registered students with detailed information</p>
-                  <button className="report-btn">Generate Report</button>
+                  <div className="report-icon">🏆</div>
+                  <h3>Overall Leaderboard</h3>
+                  <p>Complete leaderboard with all students ranked by performance</p>
+                  <button className="report-btn" onClick={downloadOverallLeaderboardPDF}>Download PDF</button>
                 </div>
 
                 <div className="report-card">
                   <div className="report-icon">🏢</div>
-                  <h3>Branch-wise Report</h3>
-                  <p>Detailed analysis by department</p>
-                  <button className="report-btn">Generate Report</button>
-                </div>
-
-                <div className="report-card">
-                  <div className="report-icon">📈</div>
-                  <h3>Performance Analytics</h3>
-                  <p>Comprehensive performance insights</p>
-                  <button className="report-btn">Generate Report</button>
-                </div>
-
-                <div className="report-card">
-                  <div className="report-icon">🏆</div>
-                  <h3>Leaderboard Report</h3>
-                  <p>Top performers and rankings</p>
-                  <button className="report-btn">Generate Report</button>
-                </div>
-
-                <div className="report-card">
-                  <div className="report-icon">📧</div>
-                  <h3>Communication List</h3>
-                  <p>Email addresses for notifications</p>
-                  <button className="report-btn">Generate Report</button>
-                </div>
-
-                <div className="report-card">
-                  <div className="report-icon">🎯</div>
-                  <h3>Target Analysis</h3>
-                  <p>Performance against targets</p>
-                  <button className="report-btn">Generate Report</button>
+                  <h3>Branch-wise Leaderboard</h3>
+                  <p>Leaderboard organized by department/branch</p>
+                  <button className="report-btn" onClick={downloadBranchwiseLeaderboardPDF}>Download PDF</button>
                 </div>
               </div>
             </div>

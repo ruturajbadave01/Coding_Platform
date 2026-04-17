@@ -659,6 +659,12 @@ body, html, #root {
   }
   
   /* Reports Section */
+  .reports-section .certificate-input option,
+  .reports-section select option {
+    background: #fff;
+    color: #000;
+  }
+
   .reports-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -695,6 +701,45 @@ body, html, #root {
     margin: 0 0 1.5em 0;
     font-size: 0.9rem;
   }
+
+  /* Tables inside reports and students sections */
+  .students-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .students-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .students-table thead th {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    white-space: nowrap;
+  }
+
+  .students-table tbody td {
+    color: #e6e6e6;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    vertical-align: top;
+  }
+
+  .students-table tbody tr:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .students-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transition: background 0.2s ease;
+  }
   
   .report-btn {
     background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
@@ -711,6 +756,66 @@ body, html, #root {
   .report-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(255, 81, 47, 0.3);
+  }
+
+  /* Modal for student details */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-card {
+    width: 90%;
+    max-width: 700px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    color: #fff;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #fff;
+  }
+
+  .modal-close {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .modal-content {
+    padding: 16px 20px;
+    color: #fff;
+  }
+
+  .modal-row {
+    margin: 6px 0;
+    color: #fff;
+  }
+
+  .modal-footer {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
   }
   
   /* Loading */
@@ -810,5 +915,235 @@ body, html, #root {
     .header-actions {
       width: 100%;
       justify-content: space-between;
+    }
+  }
+
+  /* Certificate Verification Styles */
+  .verification-section {
+    padding: 2rem;
+  }
+
+  .section-subtitle {
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+  }
+
+  .verification-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .verification-form {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .certificate-input {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .certificate-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .certificate-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 1px;
+  }
+
+  .verify-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+  }
+
+  .verify-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(76, 175, 80, 0.4);
+  }
+
+  .verify-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .error-message {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .verification-result {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .result-header h3 {
+    color: #fff;
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .status-badge.valid {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+
+  .status-badge.invalid {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+  }
+
+  .result-details {
+    margin-bottom: 1.5rem;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .detail-label {
+    color: #ccc;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .detail-value {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .result-actions .action-btn {
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+  }
+
+  .result-actions .action-btn.primary {
+    background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+    color: #fff;
+  }
+
+  .result-actions .action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .result-actions .action-btn.verify {
+    background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+    color: #fff;
+  }
+  
+  .result-actions .action-btn.verify:hover {
+    background: linear-gradient(90deg, #45a049 0%, #3d8b40 100%);
+  }
+  
+  .detail-value.verified {
+    color: #4CAF50;
+    font-weight: bold;
+  }
+  
+  .detail-value.unverified {
+    color: #FF9800;
+    font-weight: bold;
+  }
+
+  .result-actions .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }

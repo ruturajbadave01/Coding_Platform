@@ -61,6 +61,7 @@
   display: flex;
   gap: 1em;
   flex-wrap: wrap;
+  margin-bottom: 1em;
 }
 
 .form-group {
@@ -68,12 +69,23 @@
   display: flex;
   flex-direction: column;
   min-width: 120px;
+  margin-bottom: 0.5em;
 }
 
 .form-group label {
-  font-weight: 500;
-  margin-bottom: 0.3em;
-  color: #333;
+  font-weight: 600 !important;
+  margin-bottom: 0.5em !important;
+  color: #2c3e50 !important;
+  font-size: 0.95rem !important;
+  display: block !important;
+  text-align: left !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  width: auto !important;
 }
 
 .form-group input {
@@ -102,11 +114,31 @@
   background: #f7f7fa;
   box-shadow: 0 1px 4px #0000000a;
   color: #232526;
-  margin-top: 0.2em;
+  margin-top: 0;
 }
 .register-form select:focus {
   border: 1.5px solid #ff512f;
   background: #fff;
+}
+
+/* Ensure labels are always visible */
+.register-form .form-group label,
+.register-form label {
+  font-weight: 600;
+  margin-bottom: 0.5em;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  display: block;
+  text-align: left;
+  line-height: 1.2;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  visibility: visible;
+  opacity: 1;
+  height: auto;
+  width: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .error {

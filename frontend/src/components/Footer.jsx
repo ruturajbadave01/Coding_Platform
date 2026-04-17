@@ -6,70 +6,7 @@ import './Footer.css';
 export default function Footer() {
   return (
     <footer className="footer">
-      {/* Upper Footer Section */}
-      <div className="footer-upper">
-        <div className="footer-columns">
-          <div className="footer-column">
-            <h4>For Students</h4>
-            <ul>
-              <li><Link to="/login">Practice Coding</Link></li>
-              <li><Link to="/register">Join Contests</Link></li>
-              <li><Link to="/student-dashboard">Student Dashboard</Link></li>
-              <li><Link to="/">Leaderboard</Link></li>
-            </ul>
-          </div>
-          
-          <div className="footer-column">
-            <h4>For Departments</h4>
-            <ul>
-              <li><Link to="/admin-dashboard">Admin Dashboard</Link></li>
-              <li><Link to="/login">Manage Students</Link></li>
-              <li><Link to="/">View Analytics</Link></li>
-              <li><Link to="/">Create Contests</Link></li>
-            </ul>
-          </div>
-          
-          <div className="footer-column">
-            <h4>Features</h4>
-            <ul>
-              <li><Link to="/">Coding Challenges</Link></li>
-              <li><Link to="/">Real-time Compilation</Link></li>
-              <li><Link to="/">Progress Tracking</Link></li>
-              <li><Link to="/">Performance Analytics</Link></li>
-            </ul>
-          </div>
-          
-          <div className="footer-column">
-            <h4>Platform</h4>
-            <ul>
-              <li><Link to="/">Security</Link></li>
-              <li><Link to="/">Privacy Policy</Link></li>
-              <li><Link to="/">Terms of Service</Link></li>
-              <li><Link to="/">Support</Link></li>
-            </ul>
-          </div>
-          
-          <div className="footer-column">
-            <h4>Resources</h4>
-            <ul>
-              <li><Link to="/">Documentation</Link></li>
-              <li><Link to="/">Tutorials</Link></li>
-              <li><Link to="/">FAQ</Link></li>
-              <li><Link to="/">Blog</Link></li>
-            </ul>
-          </div>
-          
-          <div className="footer-column">
-            <h4>Company</h4>
-            <ul>
-              <li><Link to="/">About Us</Link></li>
-              <li><Link to="/">Contact</Link></li>
-              <li><Link to="/">Careers</Link></li>
-              <li><Link to="/">Press</Link></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Upper Footer Section Removed as requested */}
       
       {/* Lower Footer Section */}
       <div className="footer-lower">

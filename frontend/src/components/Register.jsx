@@ -193,37 +193,37 @@ export default function Register() {
         {submitted && <div className="success-msg">Registration successful!</div>}
         <div className="form-row">
           <div className="form-group">
-            <label>First Name*</label>
-            <input name="firstName" value={form.firstName} onChange={handleChange} />
+            <label htmlFor="firstName">First Name*</label>
+            <input id="firstName" name="firstName" value={form.firstName} onChange={handleChange} />
             {errors.firstName && <span className="error">{errors.firstName}</span>}
           </div>
           <div className="form-group">
-            <label>Middle Name*</label>
-            <input name="middleName" value={form.middleName} onChange={handleChange} />
+            <label htmlFor="middleName">Middle Name*</label>
+            <input id="middleName" name="middleName" value={form.middleName} onChange={handleChange} />
             {errors.middleName && <span className="error">{errors.middleName}</span>}
           </div>
           <div className="form-group">
-            <label>Last Name*</label>
-            <input name="lastName" value={form.lastName} onChange={handleChange} />
+            <label htmlFor="lastName">Last Name*</label>
+            <input id="lastName" name="lastName" value={form.lastName} onChange={handleChange} />
             {errors.lastName && <span className="error">{errors.lastName}</span>}
           </div>
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Email Address*</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} />
+            <label htmlFor="email">Email Address*</label>
+            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} />
             {errors.email && <span className="error">{errors.email}</span>}
           </div>
           <div className="form-group">
-            <label>PRN Number*</label>
-            <input name="prn" value={form.prn} onChange={handleChange} placeholder="e.g. 2211198101" autoComplete="username" />
+            <label htmlFor="prn">PRN Number*</label>
+            <input id="prn" name="prn" value={form.prn} onChange={handleChange} placeholder="e.g. 2211198101" autoComplete="username" />
             {errors.prn && <span className="error">{errors.prn}</span>}
           </div>
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Class*</label>
-            <select name="className" value={form.className} onChange={handleChange}>
+            <label htmlFor="className">Class*</label>
+            <select id="className" name="className" value={form.className} onChange={handleChange}>
               {CLASSES.map((cls) => (
                 <option key={cls} value={cls}>{cls}</option>
               ))}
@@ -231,8 +231,8 @@ export default function Register() {
             {errors.className && <span className="error">{errors.className}</span>}
           </div>
           <div className="form-group">
-            <label>Branch*</label>
-            <select name="branch" value={form.branch} onChange={handleChange}>
+            <label htmlFor="branch">Branch*</label>
+            <select id="branch" name="branch" value={form.branch} onChange={handleChange}>
               {BRANCHES.map((br) => (
                 <option key={br} value={br}>{br}</option>
               ))}
@@ -242,13 +242,13 @@ export default function Register() {
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Password*</label>
-            <input name="password" type="password" value={form.password} onChange={handleChange} autoComplete="new-password" />
+            <label htmlFor="password">Password*</label>
+            <input id="password" name="password" type="password" value={form.password} onChange={handleChange} autoComplete="new-password" />
             {errors.password && <span className="error">{errors.password}</span>}
           </div>
           <div className="form-group">
-            <label>Confirm Password*</label>
-            <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} autoComplete="new-password" />
+            <label htmlFor="confirmPassword">Confirm Password*</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} autoComplete="new-password" />
             {errors.confirmPassword && <span className="error">{errors.confirmPassword}</span>}
           </div>
         </div>

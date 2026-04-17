@@ -1,0 +1,416 @@
+.contest-problem-editor {
+  width: 100%;
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 20px;
+}
+
+.problem-editor-header {
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.back-button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  width: fit-content;
+  transition: background 0.3s;
+}
+
+.back-button:hover {
+  background: #2980b9;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.challenges-subtitle {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.problem-content-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 600px;
+}
+
+/* Problem Statement Section */
+.problem-statement-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+/* 
+  Overrides to force light theme for problem statement when inside a contest,
+  fighting against the dark theme from CodeEditor.css 
+*/
+.contest-problem-editor .problem-statement-section {
+  background: white !important;
+  color: #2c3e50 !important;
+}
+
+.contest-problem-editor .problem-statement-section h3,
+.contest-problem-editor .problem-statement-section h4,
+.contest-problem-editor .problem-statement-section p,
+.contest-problem-editor .problem-statement-section li,
+.contest-problem-editor .problem-statement-section strong,
+.contest-problem-editor .problem-statement-section pre,
+.contest-problem-editor .problem-statement-section code {
+  color: #2c3e50 !important;
+}
+
+.contest-problem-editor .problem-meta span {
+  background: #ecf0f1 !important;
+  color: #34495e !important;
+  border: 1px solid #d1d5db;
+}
+
+.contest-problem-editor .example {
+  background: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+.contest-problem-editor .example pre {
+  background: #ffffff !important;
+}
+
+.contest-problem-editor .code-section,
+.contest-problem-editor .code-editor-container,
+.contest-problem-editor .cm-editor {
+  background: #ffffff !important;
+}
+
+.contest-problem-editor .cm-content,
+.contest-problem-editor .cm-gutterElement {
+  color: #000000 !important;
+}
+
+.contest-problem-editor .cm-gutters {
+  background: #f7f7f7 !important;
+  border-right: 1px solid #ddd !important;
+}
+
+.contest-problem-editor .cm-cursor {
+  border-left-color: #000000 !important;
+}
+
+.problem-header h4 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+}
+
+.problem-title h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 20px;
+}
+
+.problem-meta {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.difficulty,
+.points {
+  background: #ecf0f1;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.difficulty {
+  color: #e74c3c;
+}
+
+.points {
+  color: #27ae60;
+}
+
+.problem-description h4,
+.problem-constraints h4,
+.problem-examples h4 {
+  color: #2c3e50;
+  margin: 20px 0 10px 0;
+  font-size: 16px;
+}
+
+.problem-description p {
+  line-height: 1.6;
+  color: #34495e;
+  margin-bottom: 15px;
+}
+
+.problem-constraints ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.problem-constraints li {
+  margin-bottom: 5px;
+  color: #34495e;
+}
+
+/* Test Cases */
+.test-cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.test-case-preview {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.test-case-header {
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.test-case-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-input,
+.test-output {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.test-input strong,
+.test-output strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #2c3e50;
+  font-size: 12px;
+}
+
+.test-input pre,
+.test-output pre {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #495057;
+  white-space: pre-wrap;
+}
+
+.example {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.example-input,
+.example-output {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 10px;
+}
+
+.example-input strong,
+.example-output strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #2c3e50;
+  font-size: 12px;
+}
+
+.example-input pre,
+.example-output pre {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #495057;
+  white-space: pre-wrap;
+}
+
+/* Code Section */
+.code-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #3498db;
+}
+
+.editor-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.editor-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.language-selector {
+  padding: 8px 12px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  background: white;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.code-editor-area {
+  margin-bottom: 20px;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 15px;
+  border: 1px solid #bdc3c7;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  background: #f8f9fa;
+  color: #2c3e50;
+  resize: vertical;
+}
+
+.code-textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-run {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-run:hover:not(:disabled) {
+  background: #229954;
+}
+
+.btn-submit {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-clear {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-clear:hover:not(:disabled) {
+  background: #7f8c8d;
+}
+
+.output-section h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.output-area {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 15px;
+  border-radius: 6px;
+  min-height: 100px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.output-area pre {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .problem-content-container {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .problem-statement-section {
+    max-height: 400px;
+  }
+
+  .editor-actions {
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}

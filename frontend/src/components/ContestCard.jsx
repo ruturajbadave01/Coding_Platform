@@ -31,7 +31,9 @@ export default function ContestCard({ contest, onJoin, onView }) {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '—';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -42,8 +44,11 @@ export default function ContestCard({ contest, onJoin, onView }) {
   };
 
   const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    if (minutes == null || minutes === '') return '—';
+    const m = Number(minutes);
+    if (Number.isNaN(m)) return '—';
+    const hours = Math.floor(m / 60);
+    const mins = m % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
@@ -119,12 +124,12 @@ export default function ContestCard({ contest, onJoin, onView }) {
           <div className="detail-item">
             <span className="detail-icon">👥</span>
             <span className="detail-label">Participants:</span>
-            <span className="detail-value">{contest.current_participants || 0}/{contest.max_participants}</span>
+            <span className="detail-value">{(Number(contest.current_participants) || 0)}/{contest.max_participants != null ? Number(contest.max_participants) : '—'}</span>
           </div>
           <div className="detail-item">
             <span className="detail-icon">🏆</span>
             <span className="detail-label">Problems:</span>
-            <span className="detail-value">{contest.problem_count || 0}</span>
+            <span className="detail-value">{contest.problem_count != null ? Number(contest.problem_count) : '—'}</span>
           </div>
         </div>
       </div>
@@ -143,12 +148,16 @@ export default function ContestCard({ contest, onJoin, onView }) {
 
       <div className="contest-footer">
         <div className="department-info">
-          <span className="department-badge">{contest.department} Department</span>
+          <span className="department-badge">{contest.department || '—'} Department</span>
         </div>
         <div className="contest-stats">
           <span className="stat-item">
             <span className="stat-icon">📊</span>
-            <span className="stat-value">{Math.round((contest.currentParticipants / contest.maxParticipants) * 100)}%</span>
+            <span className="stat-value">
+              {contest.max_participants > 0
+                ? `${Math.round((Number(contest.current_participants) || 0) / Number(contest.max_participants) * 100)}%`
+                : '0%'}
+            </span>
             <span className="stat-label">Full</span>
           </span>
         </div>

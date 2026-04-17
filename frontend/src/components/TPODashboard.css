@@ -561,15 +561,33 @@ body, html, #root {
   }
   
   .stat-value {
-    color: #fff;
+    color: #2c3e50;
     font-weight: bold;
     font-size: 1.1rem;
     display: block;
   }
   
   .stat-label {
-    color: #ccc;
+    color: #34495e;
     font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  /* Leaderboard card specific stats styling */
+  .leaderboard-card .stat-value {
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 1.2rem;
+    display: block;
+    margin-bottom: 0.2em;
+  }
+  
+  .leaderboard-card .stat-label {
+    color: #34495e;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   
   .leaderboard-stats {
@@ -589,6 +607,22 @@ body, html, #root {
   .leaderboard-stats .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     margin-bottom: 0;
+  }
+
+  .leaderboard-stats .stat-value {
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.3em;
+  }
+  
+  .leaderboard-stats .stat-label {
+    color: #34495e;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   
   /* Performance Section */
@@ -867,4 +901,29 @@ body, html, #root {
     .stats-info {
       justify-content: center;
     }
+  }
+
+  /* Real-time leaderboard styles */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2em;
+  }
+
+  .last-update {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    color: #ccc;
+    font-size: 0.9rem;
+  }
+
+  .update-indicator {
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }

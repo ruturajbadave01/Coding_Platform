@@ -90,7 +90,7 @@ function ChallengeCard({ challenge, onStart, isSolved }) {
   );
 }
 
-export default function CodingChallenges() {
+export default function CodingChallenges({ onEditorModeChange }) {
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedChallenge, setSelectedChallenge] = useState(null);
@@ -98,6 +98,46 @@ export default function CodingChallenges() {
   const [solvedProblems, setSolvedProblems] = useState(new Set());
   const [totalPoints, setTotalPoints] = useState(0);
   const [currentUser, setCurrentUser] = useState('');
+
+  // Sync local problems progress with backend so leaderboard/progress reflect correctly
+  const syncProgressWithBackend = async () => {
+    if (!currentUser) return;
+    try {
+      const statsRes = await fetch(`http://localhost:5000/api/student/${encodeURIComponent(currentUser)}/stats`);
+      if (!statsRes.ok) return;
+      const statsJson = await statsRes.json();
+      const stats = statsJson?.stats;
+      if (!stats) return;
+
+      const localSolved = solvedProblems.size;
+      const localPoints = totalPoints;
+
+      const backendSolved = Number(stats.totalSolved || 0);
+      const backendPoints = Number(stats.totalPoints || 0);
+
+      // Only push if local is ahead of backend (e.g., solved before backend updates existed)
+      if (localSolved > backendSolved || localPoints > backendPoints) {
+        const body = {
+          problems_solved: Math.max(localSolved, backendSolved),
+          total_points: Math.max(localPoints, backendPoints),
+          current_streak: stats.currentStreak || 0,
+          global_rank: stats.rank || 999,
+          accuracy: stats.accuracy || 0
+        };
+        await fetch(`http://localhost:5000/api/student/${encodeURIComponent(currentUser)}/stats`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        try {
+          localStorage.setItem('statsUpdated', Date.now().toString());
+          window.dispatchEvent(new Event('statsUpdated'));
+        } catch (_) {}
+      }
+    } catch (_) {
+      // ignore sync errors
+    }
+  };
 
   // Validate data integrity on component mount
   useEffect(() => {
@@ -124,6 +164,8 @@ export default function CodingChallenges() {
         }
       }
     } catch (_) {}
+    // Attempt initial sync after loading persisted progress
+    setTimeout(() => { syncProgressWithBackend(); }, 0);
   }, []);
 
   // Persist progress when it changes
@@ -136,6 +178,8 @@ export default function CodingChallenges() {
     try {
       localStorage.setItem(`progress:${currentUser}`, JSON.stringify(data));
     } catch (_) {}
+    // Also try syncing to backend whenever progress changes
+    syncProgressWithBackend();
   }, [solvedProblems, totalPoints, currentUser]);
 
   // Transform the new problem data to match the expected format
@@ -156,14 +200,25 @@ export default function CodingChallenges() {
   // Get unique categories from the problems
   const uniqueCategories = [...new Set(transformedChallenges.map(challenge => challenge.category))].sort();
 
-  const handleStartChallenge = (challenge) => {
+  const handleStartChallenge = async (challenge) => {
     setSelectedChallenge(challenge);
     setShowCodeEditor(true);
+    if (onEditorModeChange) onEditorModeChange(true);
+    
+    // Trigger fullscreen immediately when user clicks the button
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      }
+    } catch (err) {
+      console.warn('Failed to enter fullscreen:', err);
+    }
   };
 
   const handleBackToChallenges = () => {
     setShowCodeEditor(false);
     setSelectedChallenge(null);
+    if (onEditorModeChange) onEditorModeChange(false);
   };
 
   const handleSubmission = (result) => {
@@ -175,10 +230,11 @@ export default function CodingChallenges() {
         setTotalPoints(prev => prev + (selectedChallenge.points || 5));
       }
       
-      alert('🎉 Congratulations! All test cases passed!');
+      // Don't show alert - let the UI handle success display
       // Redirect back to problems list
       setShowCodeEditor(false);
       setSelectedChallenge(null);
+      if (onEditorModeChange) onEditorModeChange(false);
     } else {
       alert('❌ Some test cases failed. Check the output for details.');
     }
@@ -187,33 +243,18 @@ export default function CodingChallenges() {
   // If code editor is shown, render it with the selected challenge
   if (showCodeEditor && selectedChallenge) {
     return (
-      <div className="coding-challenges">
-        <div className="challenges-header">
-          <button 
-            onClick={handleBackToChallenges}
-            className="back-button"
-          >
-            ← Back to Challenges
-          </button>
-          <h2 className="section-title">💻 {selectedChallenge.title}</h2>
-          <p className="challenges-subtitle">
-            {selectedChallenge.difficulty} • {selectedChallenge.category} • {selectedChallenge.points} points
-          </p>
-        </div>
-        
-        <CodeEditor 
-          problem={{
-            id: selectedChallenge.id,
-            title: selectedChallenge.title,
-            description: selectedChallenge.description,
-            difficulty: selectedChallenge.difficulty,
-            points: selectedChallenge.points,
-            testCases: selectedChallenge.testCases || []
-          }}
-          onSubmission={handleSubmission}
-          onClose={handleBackToChallenges}
-        />
-      </div>
+      <CodeEditor 
+        problem={{
+          id: selectedChallenge.id,
+          title: selectedChallenge.title,
+          description: selectedChallenge.description,
+          difficulty: selectedChallenge.difficulty,
+          points: selectedChallenge.points,
+          testCases: selectedChallenge.testCases || []
+        }}
+        onSubmission={handleSubmission}
+        onClose={handleBackToChallenges}
+      />
     );
   }
 

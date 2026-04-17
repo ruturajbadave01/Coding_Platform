@@ -46,92 +46,111 @@ class CodeExecutor {
         };
       }
 
-      // Submit code to Judge0
-      const submissionResponse = await fetch(`${this.judge0ApiUrl}/submissions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RapidAPI-Key': this.judge0ApiKey,
-          'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-        },
-        body: JSON.stringify({
-          language_id: languageId,
-          source_code: code,
-          stdin: testCases.length > 0 ? testCases[0].input : ''
-        })
-      });
-
-      if (!submissionResponse.ok) {
-        throw new Error(`Judge0 API error: ${submissionResponse.status}`);
-      }
-
-      const submission = await submissionResponse.json();
-      const token = submission.token;
-
-      // Poll for results
-      let result;
-      let attempts = 0;
-      const maxAttempts = 30; // 30 seconds timeout
-
-      while (attempts < maxAttempts) {
-        const resultResponse = await fetch(`${this.judge0ApiUrl}/submissions/${token}`, {
-          headers: {
-            'X-RapidAPI-Key': this.judge0ApiKey,
-            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-          }
-        });
-
-        if (!resultResponse.ok) {
-          throw new Error(`Judge0 API error: ${resultResponse.status}`);
-        }
-
-        result = await resultResponse.json();
-
-        if (result.status.id > 2) { // Status > 2 means processing is complete
-          break;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        attempts++;
-      }
-
-      if (attempts >= maxAttempts) {
-        return {
-          success: false,
-          error: 'Execution timeout',
-          output: '',
-          testResults: []
-        };
-      }
-
-      // Parse the result
-      const output = result.stdout || '';
-      const error = result.stderr || '';
-      const success = result.status.id === 3; // Status 3 = Accepted
-
-      // Test case validation
+      // Execute each test case individually with Judge0 API
       const testResults = [];
       let allPassed = true;
+      let overallOutput = '';
 
-      if (testCases && testCases.length > 0) {
-        testResults.push({
-          testCase: 1,
-          input: testCases[0].input,
-          expectedOutput: testCases[0].output,
-          actualOutput: output,
-          passed: this.checkTestCase(output, testCases[0])
-        });
+      for (let i = 0; i < testCases.length; i++) {
+        const testCase = testCases[i];
+        console.log(`Judge0 API executing test case ${i + 1}/${testCases.length} with input: ${testCase.input}`);
+        
+        try {
+          // Submit code to Judge0 with this test case's input
+          const submissionResponse = await fetch(`${this.judge0ApiUrl}/submissions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-RapidAPI-Key': this.judge0ApiKey,
+              'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+            },
+            body: JSON.stringify({
+              language_id: languageId,
+              source_code: code,
+              stdin: testCase.input || ''
+            })
+          });
 
-        if (!testResults[0].passed) {
+          if (!submissionResponse.ok) {
+            throw new Error(`Judge0 API error: ${submissionResponse.status}`);
+          }
+
+          const submission = await submissionResponse.json();
+          const token = submission.token;
+
+          // Poll for results
+          let result;
+          let attempts = 0;
+          const maxAttempts = 30; // 30 seconds timeout
+
+          while (attempts < maxAttempts) {
+            const resultResponse = await fetch(`${this.judge0ApiUrl}/submissions/${token}`, {
+              headers: {
+                'X-RapidAPI-Key': this.judge0ApiKey,
+                'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+              }
+            });
+
+            if (!resultResponse.ok) {
+              throw new Error(`Judge0 API error: ${resultResponse.status}`);
+            }
+
+            result = await resultResponse.json();
+
+            if (result.status.id > 2) { // Status > 2 means processing is complete
+              break;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+            attempts++;
+          }
+
+          if (attempts >= maxAttempts) {
+            throw new Error('Execution timeout');
+          }
+
+          // Parse the result
+          const output = result.stdout || '';
+          const error = result.stderr || '';
+          const success = result.status.id === 3; // Status 3 = Accepted
+          const passed = success && this.checkTestCase(output, testCase);
+          
+          testResults.push({
+            testCase: i + 1,
+            input: testCase.input,
+            expectedOutput: testCase.output,
+            actualOutput: output,
+            passed: passed
+          });
+          
+          if (!passed) allPassed = false;
+          if (i === 0) overallOutput = output;
+          
+          console.log(`Judge0 test case ${i + 1} result:`, {
+            input: testCase.input,
+            expected: testCase.output,
+            actual: output,
+            passed: passed
+          });
+          
+        } catch (error) {
+          console.error(`Judge0 test case ${i + 1} error:`, error);
+          testResults.push({
+            testCase: i + 1,
+            input: testCase.input,
+            expectedOutput: testCase.output,
+            actualOutput: '',
+            passed: false
+          });
           allPassed = false;
         }
       }
 
       return {
-        success: success && allPassed,
-        exitCode: result.status.id,
-        output: output,
-        error: error || null,
+        success: allPassed,
+        exitCode: 0,
+        output: overallOutput,
+        error: null,
         testResults: testResults,
         allTestsPassed: allPassed
       };
@@ -170,60 +189,74 @@ class CodeExecutor {
           testResults: []
         };
       }
-      
-      const requestBody = {
-        code: code,
-        language: mappedLanguage,
-        input: testCases.length > 0 ? testCases[0].input : ''
-      };
-      
-      console.log('CodeX request body:', requestBody);
-      
-      const response = await fetch('https://api.codex.jaagrav.in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
 
-      console.log('CodeX API response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('CodeX API error response:', errorText);
-        throw new Error(`CodeX API error: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('CodeX API raw result:', result);
-      
-      if (result.error) {
-        console.log('CodeX API returned error:', result.error);
-        return {
-          success: false,
-          error: result.error,
-          output: '',
-          testResults: []
-        };
-      }
-
-      const output = result.output || '';
-      console.log('CodeX API output:', output);
-      
+      // Execute each test case individually with CodeX API
       const testResults = [];
       let allPassed = true;
+      let overallOutput = '';
 
-      if (testCases && testCases.length > 0) {
-        testResults.push({
-          testCase: 1,
-          input: testCases[0].input,
-          expectedOutput: testCases[0].output,
-          actualOutput: output,
-          passed: this.checkTestCase(output, testCases[0])
-        });
+      for (let i = 0; i < testCases.length; i++) {
+        const testCase = testCases[i];
+        // Normalize input: convert commas to spaces for better compatibility
+        const normalizedInput = (testCase.input || '').replace(/,/g, ' ');
+        console.log(`CodeX API executing test case ${i + 1}/${testCases.length} with input: ${normalizedInput}`);
+        
+        try {
+          const requestBody = {
+            code: code,
+            language: mappedLanguage,
+            input: normalizedInput
+          };
+          
+          const response = await fetch('https://api.codex.jaagrav.in', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+          });
 
-        if (!testResults[0].passed) {
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`CodeX API error: ${response.status} - ${errorText}`);
+          }
+
+          const result = await response.json();
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          const output = result.output || '';
+          const passed = this.checkTestCase(output, testCase);
+          
+          testResults.push({
+            testCase: i + 1,
+            input: normalizedInput,
+            expectedOutput: testCase.output,
+            actualOutput: output,
+            passed: passed
+          });
+          
+          if (!passed) allPassed = false;
+          if (i === 0) overallOutput = output;
+          
+          console.log(`CodeX test case ${i + 1} result:`, {
+            input: normalizedInput,
+            expected: testCase.output,
+            actual: output,
+            passed: passed
+          });
+          
+        } catch (error) {
+          console.error(`CodeX test case ${i + 1} error:`, error);
+          testResults.push({
+            testCase: i + 1,
+            input: testCase.input,
+            expectedOutput: testCase.output,
+            actualOutput: '',
+            passed: false
+          });
           allPassed = false;
         }
       }
@@ -231,7 +264,7 @@ class CodeExecutor {
       const finalResult = {
         success: allPassed,
         exitCode: 0,
-        output: output,
+        output: overallOutput,
         error: null,
         testResults: testResults,
         allTestsPassed: allPassed
@@ -251,42 +284,100 @@ class CodeExecutor {
     }
   }
 
-  // Updated executeCodeSimple to prefer CodeX, then fall back to Judge0, then local
+  // Updated executeCodeSimple to use local execution for proper test case handling
   async executeCodeSimple(language, code, testCases) {
-    console.log(`Attempting to execute ${language} code using external APIs...`);
+    console.log(`Executing ${language} code with ${testCases.length} test cases using local execution...`);
     
-    try {
-      // Try CodeX first
-      console.log('Trying CodeX API...');
-      const codexResult = await this.executeCodeCodeX(language, code, testCases);
-      console.log('CodeX API result:', codexResult);
-      if (codexResult.success) {
-        console.log('CodeX API successful, returning result');
-        return codexResult;
-      }
-    } catch (error) {
-      console.error('CodeX error:', error);
+    // Use local execution by default for proper test case handling
+    // External APIs have limitations with multiple test cases
+    return await this.executeCodeLocalMultiple(language, code, testCases);
+  }
+
+  // Execute each test case individually for proper validation
+  async executeCodeLocalMultiple(language, code, testCases) {
+    console.log(`executeCodeLocalMultiple called with ${testCases ? testCases.length : 0} test cases`);
+    console.log('Test cases:', testCases);
+    
+    if (!testCases || testCases.length === 0) {
+      console.log('No test cases, executing without input');
+      return await this.executeCodeLocal(language, code, []);
     }
 
-    try {
-      // Try Judge0 if key is present
-      if (this.judge0ApiKey) {
-        console.log('Trying Judge0 API...');
-        const judge0Result = await this.executeCodeExternal(language, code, testCases);
-        console.log('Judge0 API result:', judge0Result);
-        if (judge0Result.success) {
-          console.log('Judge0 API successful, returning result');
-          return judge0Result;
+    const testResults = [];
+    let allPassed = true;
+    let overallOutput = '';
+    let overallError = '';
+
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+      console.log(`Executing test case ${i + 1}/${testCases.length}`);
+      console.log(`Input: "${testCase.input}"`);
+      console.log(`Expected: "${testCase.output}"`);
+      
+      try {
+        // Execute code with this specific test case's input
+        const result = await this.executeCodeLocal(language, code, [testCase]);
+        console.log(`Test case ${i + 1} execution result:`, result);
+        
+        const testResult = {
+          testCase: i + 1,
+          input: testCase.input,
+          expectedOutput: testCase.output,
+          actualOutput: result.output,
+          passed: result.success && this.checkTestCase(result.output, testCase)
+        };
+        
+        console.log(`Test case ${i + 1} final result:`, {
+          input: testCase.input,
+          expected: testCase.output,
+          actual: result.output,
+          passed: testResult.passed
+        });
+        
+        testResults.push(testResult);
+        if (!testResult.passed) allPassed = false;
+        
+        // Use the first test case output for overall display
+        if (i === 0) {
+          overallOutput = result.output;
+          overallError = result.error || '';
         }
-      } else {
-        console.log('Judge0 API key not configured; skipping Judge0');
+        
+      } catch (error) {
+        console.error(`Test case ${i + 1} execution error:`, error);
+        testResults.push({
+          testCase: i + 1,
+          input: testCase.input,
+          expectedOutput: testCase.output,
+          actualOutput: '',
+          passed: false
+        });
+        allPassed = false;
       }
-    } catch (error) {
-      console.error('Judge0 error:', error);
     }
 
-    console.log('All external APIs failed, falling back to local execution...');
-    return await this.executeCodeLocal(language, code, testCases);
+    console.log(`All test cases completed. All passed: ${allPassed}`);
+    console.log('Final test results:', testResults);
+    
+    // Create consolidated test results for frontend display
+    const consolidatedTestResults = testCases.map((testCase, index) => {
+      const testResult = testResults.find(tr => tr.testCase === index + 1);
+      return {
+        testCase: index + 1,
+        input: testCase.input,
+        expectedOutput: testCase.output,
+        actualOutput: testResult ? testResult.actualOutput : '',
+        passed: testResult ? testResult.passed : false
+      };
+    });
+    
+    return {
+      success: allPassed,
+      output: overallOutput,
+      error: overallError,
+      testResults: consolidatedTestResults,
+      allTestsPassed: allPassed
+    };
   }
 
   // Local execution (fallback)
@@ -818,7 +909,8 @@ class CodeExecutor {
     // Robust comparison: normalize whitespace and line endings
     const normalize = (text) => {
       if (text == null) return '';
-      return text
+      const s = String(text);
+      return s
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n')
         .split('\n')
@@ -833,7 +925,22 @@ class CodeExecutor {
 
     if (cleanOutput === expectedOutput) return true;
     // Allow expected to be contained in output (handles extra trailing newlines/logs)
-    return cleanOutput.includes(expectedOutput);
+    if (cleanOutput.includes(expectedOutput)) return true;
+    // Fallback 1: ignore all whitespace differences entirely
+    if (cleanOutput.replace(/\s+/g, '') === expectedOutput.replace(/\s+/g, '')) return true;
+    // Fallback 2: numeric compare when both are numeric
+    const a = parseFloat(cleanOutput);
+    const b = parseFloat(expectedOutput);
+    if (!Number.isNaN(a) && !Number.isNaN(b)) {
+      return a === b;
+    }
+    // Fallback 3: case-insensitive compare for text answers
+    if (cleanOutput.toLowerCase() === expectedOutput.toLowerCase()) return true;
+    // Fallback 4: token-by-token compare (split by any whitespace)
+    const outTokens = cleanOutput.split(/\s+/).filter(Boolean);
+    const expTokens = expectedOutput.split(/\s+/).filter(Boolean);
+    if (outTokens.length === expTokens.length && outTokens.every((t, i) => t === expTokens[i])) return true;
+    return false;
   }
 }
 

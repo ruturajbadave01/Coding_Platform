@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CreateContest.css';
 
 export default function CreateContest() {
@@ -14,14 +14,23 @@ export default function CreateContest() {
     problems: []
   });
 
+  // Set default department from logged-in admin
+  useEffect(() => {
+    const adminDepartment = localStorage.getItem('adminDepartment');
+    if (adminDepartment) {
+      setContestData(prev => ({
+        ...prev,
+        department: adminDepartment
+      }));
+    }
+  }, []);
+
   const [currentProblem, setCurrentProblem] = useState({
     title: '',
     description: '',
     difficulty: 'Medium',
     points: 10,
-    timeLimit: 1000,
-    memoryLimit: 256,
-    questionType: 'coding', // 'coding' or 'mcq'
+    questionType: 'coding', // 'coding' only
     mcqOptions: ['', '', '', ''], // 4 MCQ options
     correctAnswer: 0, // Index of correct answer (0-3)
     testCases: []
@@ -41,6 +50,7 @@ export default function CreateContest() {
   const [parsedQuestions, setParsedQuestions] = useState([]);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
+  const [attachedPdfUrl, setAttachedPdfUrl] = useState('');
 
   const handleContestChange = (e) => {
     const { name, value } = e.target;
@@ -101,6 +111,33 @@ export default function CreateContest() {
       setUploadedFile(file);
       setParseError('');
       setParsedQuestions([]);
+    }
+  };
+
+  const uploadPdfOnly = async () => {
+    if (!uploadedFile || uploadedFile.type !== 'application/pdf') return;
+    try {
+      const arrayBuffer = await uploadedFile.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(arrayBuffer);
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      const base64 = btoa(binary);
+      const res = await fetch('http://localhost:5000/api/uploads/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: uploadedFile.name, base64 })
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setAttachedPdfUrl(data.url);
+      } else {
+        setParseError(data.error || 'Failed to upload PDF');
+      }
+    } catch (err) {
+      setParseError('Failed to upload PDF');
     }
   };
 
@@ -192,9 +229,16 @@ export default function CreateContest() {
       // Create a blob URL for the PDF
       const blobUrl = URL.createObjectURL(file);
       
-      // Load PDF.js library dynamically
+      // Load PDF.js library dynamically (align worker with installed version)
       const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      try {
+        // Prefer bundler-served worker to avoid version mismatch
+        const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+      } catch (_) {
+        // Fallback to CDN using the installed major version (v4)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+      }
       
       // Load the PDF document
       const loadingTask = pdfjsLib.getDocument(blobUrl);
@@ -240,10 +284,12 @@ export default function CreateContest() {
       
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
-      
+      if (!result || typeof result.value !== 'string' || result.value.trim().length === 0) {
+        throw new Error('Empty text extracted from DOCX');
+      }
       return result.value;
     } catch (error) {
-      throw new Error('Failed to parse .docx file. Please ensure the document contains text and try again.');
+      throw new Error('Failed to parse .docx file. Please ensure the document contains selectable text and try again.');
     }
   };
 
@@ -277,7 +323,7 @@ export default function CreateContest() {
           id: questionNumber++,
           title: line.replace(/^\d+[\.\)]\s*/, ''),
           description: '',
-          questionType: 'mcq',
+          questionType: 'coding',
           difficulty: 'Medium',
           points: 10,
           mcqOptions: ['', '', '', ''],
@@ -380,10 +426,19 @@ export default function CreateContest() {
         }
       }
 
+      // Normalize test case inputs: convert commas to spaces for better compatibility
+      const normalizedProblem = {
+        ...currentProblem,
+        testCases: currentProblem.testCases.map(testCase => ({
+          ...testCase,
+          input: testCase.input ? testCase.input.replace(/,/g, ' ') : testCase.input
+        }))
+      };
+
       if (editingProblemIndex >= 0) {
         // Edit existing problem
         const updatedProblems = [...contestData.problems];
-        updatedProblems[editingProblemIndex] = { ...currentProblem };
+        updatedProblems[editingProblemIndex] = normalizedProblem;
         setContestData(prev => ({
           ...prev,
           problems: updatedProblems
@@ -393,7 +448,7 @@ export default function CreateContest() {
         // Add new problem
         setContestData(prev => ({
           ...prev,
-          problems: [...prev.problems, { ...currentProblem }]
+          problems: [...prev.problems, normalizedProblem]
         }));
       }
       setCurrentProblem({
@@ -401,8 +456,6 @@ export default function CreateContest() {
         description: '',
         difficulty: 'Medium',
         points: 10,
-        timeLimit: 1000,
-        memoryLimit: 256,
         questionType: 'coding',
         mcqOptions: ['', '', '', ''],
         correctAnswer: 0,
@@ -431,8 +484,13 @@ export default function CreateContest() {
       const currentUser = localStorage.getItem('userEmail') || localStorage.getItem('tpoUsername') || 'admin';
       
       // Prepare contest data for API
+      const descWithPdf = attachedPdfUrl 
+        ? `${contestData.description}\n\nAttached PDF: http://localhost:5000${attachedPdfUrl}`
+        : contestData.description;
+
       const contestPayload = {
         ...contestData,
+        description: descWithPdf,
         createdBy: currentUser,
         // Ensure department is set (you might want to get this from user context)
         department: contestData.department || 'CSE' // Default to CSE, adjust as needed
@@ -463,6 +521,7 @@ export default function CreateContest() {
               difficulty: 'Medium',
               problems: []
             });
+            setAttachedPdfUrl('');
           } else {
             alert('Error creating contest: ' + (data.error || 'Unknown error'));
           }
@@ -489,6 +548,7 @@ export default function CreateContest() {
           <div className="form-grid">
             <div className="form-group">
               <label>Contest Title *</label>
+              <small className="helper-text">E.g., Monthly Coding Challenge</small>
               <input
                 type="text"
                 name="title"
@@ -501,7 +561,8 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>Department *</label>
-              <select name="department" value={contestData.department} onChange={handleContestChange} required>
+              <small className="helper-text">Your department (automatically set)</small>
+              <select name="department" value={contestData.department} onChange={handleContestChange} required disabled>
                 <option value="">Select Department</option>
                 <option value="CSE">Computer Science Engineering</option>
                 <option value="IT">Information Technology</option>
@@ -514,6 +575,7 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>Difficulty Level</label>
+              <small className="helper-text">Overall difficulty of the contest</small>
               <select name="difficulty" value={contestData.difficulty} onChange={handleContestChange}>
                 <option value="Easy">Easy</option>
                 <option value="Medium">Medium</option>
@@ -524,6 +586,7 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>Start Date *</label>
+              <small className="helper-text">Date/time when contest opens</small>
               <input
                 type="datetime-local"
                 name="startDate"
@@ -535,6 +598,7 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>End Date *</label>
+              <small className="helper-text">Date/time when contest closes</small>
               <input
                 type="datetime-local"
                 name="endDate"
@@ -546,6 +610,7 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>Duration (minutes)</label>
+              <small className="helper-text">Length of contest window in minutes</small>
               <input
                 type="number"
                 name="duration"
@@ -558,6 +623,7 @@ export default function CreateContest() {
 
             <div className="form-group">
               <label>Max Participants</label>
+              <small className="helper-text">Limit registrations (leave blank for no limit)</small>
               <input
                 type="number"
                 name="maxParticipants"
@@ -571,6 +637,7 @@ export default function CreateContest() {
 
           <div className="form-group full-width">
             <label>Contest Description *</label>
+            <small className="helper-text">Include rules, allowed languages, scoring, and instructions</small>
             <textarea
               name="description"
               value={contestData.description}
@@ -582,145 +649,7 @@ export default function CreateContest() {
           </div>
         </div>
 
-        {/* File Upload Section */}
-        <div className="form-section">
-          <h3>📁 Bulk Import MCQ Questions</h3>
-          <p className="section-description">
-            Upload a file with MCQ questions to automatically create problems. 
-            Supported formats: <strong>.txt</strong>, <strong>.docx</strong>, <strong>.pdf</strong> (with selectable text).
-            <br />
-            <span className="format-note">
-              💡 <strong>Note:</strong> PDF files must contain selectable text (not scanned images). 
-              For .doc files, please convert to .docx format for best compatibility.
-            </span>
-            <br />
-            Each question should follow this format:
-          </p>
-          
-          <div className="format-example">
-            <div className="format-header">
-              <h4>📝 Expected Format:</h4>
-              <a 
-                href="/mcq-template.txt" 
-                download 
-                className="download-template-btn"
-              >
-                📥 Download Template
-              </a>
-            </div>
-            <pre>{`1. What is the capital of France?
-A. London
-B. Paris
-C. Berlin
-D. Madrid
-Answer: B
-
-2. Which programming language is this?
-A. Python
-B. Java
-C. JavaScript
-D. C++
-Answer: A`}</pre>
-          </div>
-
-          <div className="file-upload-section">
-            <div className="file-input-wrapper">
-              <input
-                type="file"
-                accept=".txt,.doc,.docx,.pdf"
-                onChange={handleFileUpload}
-                id="file-upload"
-                className="file-input"
-              />
-              <label htmlFor="file-upload" className="file-upload-label">
-                📁 Choose File
-              </label>
-              <span className="file-name">
-                {uploadedFile ? (
-                  <div className="file-info">
-                    <span className="file-name-text">{uploadedFile.name}</span>
-                    <span className="file-type-badge">
-                      {uploadedFile.type === 'text/plain' && '📄 Text'}
-                      {uploadedFile.type === 'application/pdf' && '📕 PDF'}
-                      {uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && '📘 Word (.docx)'}
-                      {uploadedFile.type === 'application/msword' && '📗 Word (.doc)'}
-                    </span>
-                  </div>
-                ) : 'No file chosen'}
-              </span>
-            </div>
-            
-            {uploadedFile && (
-              <div className="file-actions">
-                <button 
-                  className="parse-btn"
-                  onClick={parseFileContent}
-                  disabled={isParsing}
-                >
-                  {isParsing ? (
-                    <span>
-                      🔄 Parsing {uploadedFile.type === 'application/pdf' ? 'PDF' : 
-                                   uploadedFile.type.includes('word') ? 'Word' : 'Text'}...
-                    </span>
-                  ) : (
-                    <span>
-                      🔍 Parse Questions
-                      {uploadedFile.type === 'application/pdf' && ' (PDF)'}
-                      {uploadedFile.type.includes('word') && ' (Word)'}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {parseError && (
-            <div className="error-message">
-              ❌ {parseError}
-            </div>
-          )}
-
-          {parsedQuestions.length > 0 && (
-            <div className="parsed-questions-section">
-              <div className="section-header">
-                <h4>📋 Parsed Questions ({parsedQuestions.length})</h4>
-                <button 
-                  className="import-btn"
-                  onClick={importParsedQuestions}
-                >
-                  ➕ Import All Questions
-                </button>
-              </div>
-              
-              <div className="parsed-questions-list">
-                {parsedQuestions.map((question, index) => (
-                  <div key={index} className="parsed-question-card">
-                    <div className="question-header">
-                      <h5>Question {question.id}</h5>
-                      <span className="question-type-badge">MCQ</span>
-                    </div>
-                    <p className="question-title">{question.title}</p>
-                    {question.description && (
-                      <p className="question-description">{question.description}</p>
-                    )}
-                    <div className="mcq-options-preview">
-                      {question.mcqOptions.map((option, optIndex) => (
-                        <div 
-                          key={optIndex} 
-                          className={`option-preview ${optIndex === question.correctAnswer ? 'correct' : ''}`}
-                        >
-                          <span className="option-letter">{String.fromCharCode(65 + optIndex)}.</span>
-                          <span className="option-text">{option}</span>
-                          {optIndex === question.correctAnswer && <span className="correct-indicator">✓</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* MCQ import and upload section removed as requested */}
 
         <div className="form-section">
           <div className="section-header">
@@ -757,32 +686,12 @@ Answer: A`}</pre>
                   <div className="problem-details">
                     <span className="difficulty-badge">{problem.difficulty}</span>
                     <span className="points-badge">{problem.points} points</span>
-                    <span className="question-type-badge">{problem.questionType === 'mcq' ? '📝 MCQ' : '💻 Coding'}</span>
-                    {problem.questionType === 'coding' && (
-                      <>
-                        <span className="time-badge">{problem.timeLimit}ms</span>
-                        <span className="memory-badge">{problem.memoryLimit}MB</span>
-                      </>
-                    )}
+                    <span className="question-type-badge">💻 Coding</span>
                   </div>
                   <p className="problem-description">{problem.description}</p>
-                  {problem.questionType === 'mcq' ? (
-                    <div className="mcq-info">
-                      <div className="mcq-options-display">
-                        {problem.mcqOptions.map((option, index) => (
-                          <div key={index} className={`mcq-option-display ${index === problem.correctAnswer ? 'correct' : ''}`}>
-                            <span className="option-letter">{String.fromCharCode(65 + index)}.</span>
-                            <span className="option-text">{option}</span>
-                            {index === problem.correctAnswer && <span className="correct-indicator">✓</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
                     <div className="test-cases-count">
                       📝 {problem.testCases.length} test cases
                     </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -803,8 +712,6 @@ Answer: A`}</pre>
                         description: '',
                         difficulty: 'Medium',
                         points: 10,
-                        timeLimit: 1000,
-                        memoryLimit: 256,
                         questionType: 'coding',
                         mcqOptions: ['', '', '', ''],
                         correctAnswer: 0,
@@ -816,9 +723,11 @@ Answer: A`}</pre>
                   </button>
                 </div>
 
+
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Problem Title *</label>
+                    <small className="field-description">Give your problem a clear, descriptive name</small>
                     <input
                       type="text"
                       name="title"
@@ -830,15 +739,8 @@ Answer: A`}</pre>
                   </div>
 
                   <div className="form-group">
-                    <label>Question Type *</label>
-                    <select name="questionType" value={currentProblem.questionType} onChange={handleProblemChange}>
-                      <option value="coding">Coding Problem</option>
-                      <option value="mcq">Multiple Choice Question</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
                     <label>Difficulty</label>
+                    <small className="field-description">Set the difficulty level (Easy, Medium, Hard, Expert)</small>
                     <select name="difficulty" value={currentProblem.difficulty} onChange={handleProblemChange}>
                       <option value="Easy">Easy</option>
                       <option value="Medium">Medium</option>
@@ -849,6 +751,7 @@ Answer: A`}</pre>
 
                   <div className="form-group">
                     <label>Points</label>
+                    <small className="field-description">Assign points students earn for solving this problem</small>
                     <input
                       type="number"
                       name="points"
@@ -859,79 +762,97 @@ Answer: A`}</pre>
                     />
                   </div>
 
-                  {currentProblem.questionType === 'coding' && (
-                    <>
-                      <div className="form-group">
-                        <label>Time Limit (ms)</label>
-                        <input
-                          type="number"
-                          name="timeLimit"
-                          value={currentProblem.timeLimit}
-                          onChange={handleProblemChange}
-                          min="100"
-                          max="10000"
-                        />
-                      </div>
 
-                      <div className="form-group">
-                        <label>Memory Limit (MB)</label>
-                        <input
-                          type="number"
-                          name="memoryLimit"
-                          value={currentProblem.memoryLimit}
-                          onChange={handleProblemChange}
-                          min="16"
-                          max="512"
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
 
                 <div className="form-group full-width">
                   <label>Problem Description *</label>
+                  <small className="field-description">Describe the problem, input/output format, and constraints</small>
                   <textarea
                     name="description"
                     value={currentProblem.description}
                     onChange={handleProblemChange}
-                    placeholder={currentProblem.questionType === 'mcq' ? 
-                      "Describe the question, provide context, and explain what students need to answer..." : 
-                      "Describe the problem, input format, output format, and constraints..."}
+                    placeholder="Describe the problem, input format, output format, and constraints..."
                     rows="6"
                     required
                   />
                 </div>
 
-                {currentProblem.questionType === 'mcq' && (
-                  <div className="mcq-section">
-                    <h4>📝 Multiple Choice Options</h4>
-                    <div className="mcq-options">
-                      {currentProblem.mcqOptions.map((option, index) => (
-                        <div key={index} className="mcq-option">
-                          <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={currentProblem.correctAnswer === index}
-                            onChange={() => handleCorrectAnswerChange(index)}
-                            id={`option-${index}`}
-                          />
-                          <label htmlFor={`option-${index}`} className="correct-answer-label">
-                            Correct Answer
-                          </label>
-                          <input
-                            type="text"
-                            value={option}
-                            onChange={(e) => handleMCQOptionChange(index, e.target.value)}
-                            placeholder={`Option ${index + 1}`}
-                            className="mcq-option-input"
+                <div className="test-cases-section">
+                  <h4>🧪 Standard Test Cases</h4>
+                  <p className="section-description">Add 2 standard test cases for this coding problem:</p>
+                  <div className="input-format-note">
+                    <strong>📝 Input Format Note:</strong> Use spaces to separate values (e.g., "5 10 15"), not commas (e.g., "5,10,15"). 
+                    The system will automatically convert commas to spaces if needed.
+                  </div>
+                  
+                  <div className="test-cases-list">
+                    {currentProblem.testCases.map((testCase, index) => (
+                      <div key={index} className="test-case-card">
+                        <div className="test-case-header">
+                          <h5>Test Case {index + 1}</h5>
+                          <button 
+                            className="delete-btn small"
+                            onClick={() => removeTestCase(index)}
+                          >
+                            🗑️ Remove
+                          </button>
+                        </div>
+                        <div className="test-case-content">
+                          <div className="form-group">
+                            <label>Input *</label>
+                            <small className="field-description">Enter the test case input data (use spaces to separate values, not commas)</small>
+                            <textarea
+                              name="input"
+                              value={testCase.input}
+                              onChange={(e) => {
+                                const updatedTestCases = [...currentProblem.testCases];
+                                updatedTestCases[index] = { ...updatedTestCases[index], input: e.target.value };
+                                setCurrentProblem(prev => ({ ...prev, testCases: updatedTestCases }));
+                              }}
+                              placeholder="Enter test case input (e.g., 5 10 15) - Use spaces, not commas!"
+                              rows="3"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Expected Output *</label>
+                            <small className="field-description">Enter the expected output for this input</small>
+                            <textarea
+                              name="output"
+                              value={testCase.output}
+                              onChange={(e) => {
+                                const updatedTestCases = [...currentProblem.testCases];
+                                updatedTestCases[index] = { ...updatedTestCases[index], output: e.target.value };
+                                setCurrentProblem(prev => ({ ...prev, testCases: updatedTestCases }));
+                              }}
+                              placeholder="Enter expected output (e.g., 30)"
+                              rows="3"
+                              required
                           />
                         </div>
-                      ))}
                     </div>
                   </div>
-                )}
+                    ))}
+                  </div>
 
-                {currentProblem.questionType === 'coding' && (
+                  {currentProblem.testCases.length < 2 && (
+                    <button 
+                      className="add-test-case-btn"
+                      onClick={() => {
+                        const newTestCase = { input: '', output: '', description: '' };
+                        setCurrentProblem(prev => ({
+                          ...prev,
+                          testCases: [...prev.testCases, newTestCase]
+                        }));
+                      }}
+                    >
+                      ➕ Add Test Case {currentProblem.testCases.length + 1}
+                    </button>
+                  )}
+                </div>
+
+                {false && (
                   <div className="test-cases-section">
                     <div className="section-header">
                       <h4>🧪 Test Cases</h4>
